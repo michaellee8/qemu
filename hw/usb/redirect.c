@@ -115,6 +115,8 @@ struct USBRedirDevice {
     bool enable_streams;
     bool suppress_remote_wake;
     bool in_write;
+    bool allow_one_guest_reset;
+    bool allow_all_guest_resets;
     uint8_t debug;
     int32_t bootindex;
     char *filter_str;
@@ -515,6 +517,13 @@ static void usbredir_free_bufpq(USBRedirDevice *dev, uint8_t ep)
 static void usbredir_handle_reset(USBDevice *udev)
 {
     USBRedirDevice *dev = USB_REDIRECT(udev);
+
+    if (!dev->allow_one_guest_reset && !dev->allow_all_guest_resets) {
+        return;
+    }
+    if (!dev->allow_all_guest_resets && udev->addr == 0) {
+        return;
+    }
 
     DPRINTF("reset device\n");
     usbredirparser_send_reset(dev->parser);
@@ -2564,6 +2573,10 @@ static Property usbredir_properties[] = {
     DEFINE_PROP_BOOL("streams", USBRedirDevice, enable_streams, true),
     DEFINE_PROP_BOOL("suppress-remote-wake", USBRedirDevice,
                      suppress_remote_wake, true),
+    DEFINE_PROP_BOOL("guest-reset", USBRedirDevice,
+                     allow_one_guest_reset, true),
+    DEFINE_PROP_BOOL("guest-resets-all", USBRedirDevice,
+                     allow_all_guest_resets, false),
     DEFINE_PROP_END_OF_LIST(),
 };
 
